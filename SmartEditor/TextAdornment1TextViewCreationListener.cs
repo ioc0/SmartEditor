@@ -44,6 +44,7 @@ namespace SmartEditor
         {
             // The adornment will listen to any event that changes the layout (text changes, scrolling, etc)
             new TextAdornment1(textView);
+
         }
 
         #endregion

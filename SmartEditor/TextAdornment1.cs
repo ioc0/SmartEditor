@@ -5,43 +5,34 @@
 //------------------------------------------------------------------------------
 
 using System;
+using System.Diagnostics;
+using System.IO;
+using System.Net;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Formatting;
+using System.Threading;
+using System.Windows;
+using Newtonsoft.Json;
 
 namespace SmartEditor
 {
-    /// <summary>
-    /// TextAdornment1 places red boxes behind all the "a"s in the editor window
-    /// </summary>
-    internal sealed class TextAdornment1
+      internal sealed class TextAdornment1
     {
-        /// <summary>
-        /// The layer of the adornment.
-        /// </summary>
+        //initialization
         private readonly IAdornmentLayer layer;
-
-        /// <summary>
-        /// Text view where the adornment is created.
-        /// </summary>
         private readonly IWpfTextView view;
-
-        /// <summary>
-        /// Adornment brush.
-        /// </summary>
         private readonly Brush brush;
-
-        /// <summary>
-        /// Adornment pen.
-        /// </summary>
         private readonly Pen pen;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TextAdornment1"/> class.
-        /// </summary>
-        /// <param name="view">Text view to create the adornment for</param>
+        private string answer = "";
+        private string appKey = "";
+        private string sessionID = "";
+        private string type = "";
+        
+        //This was a standart addon from MS Library changed.
         public TextAdornment1(IWpfTextView view)
         {
             if (view == null)
@@ -63,32 +54,48 @@ namespace SmartEditor
             this.pen = new Pen(penBrush, 1);
             this.pen.Freeze();
         }
-
-        /// <summary>
-        /// Handles whenever the text displayed in the view changes by adding the adornment to any reformatted lines
-        /// </summary>
-        /// <remarks><para>This event is raised whenever the rendered text displayed in the <see cref="ITextView"/> changes.</para>
-        /// <para>It is raised whenever the view does a layout (which happens when DisplayTextLineContainingBufferPosition is called or in response to text or classification changes).</para>
-        /// <para>It is also raised whenever the view scrolls horizontally or when its size changes.</para>
-        /// </remarks>
-        /// <param name="sender">The event sender.</param>
-        /// <param name="e">The event arguments.</param>
         internal void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         {
+            try
+            {
+                SendAnMessage("");
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+            }
+            
+            try
+            {
+                parseAnswer(answer);
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+                //throw;
+            }
+
+            Debug.WriteLine(sessionID+ " and " + appKey);
+            
             foreach (ITextViewLine line in e.NewOrReformattedLines)
             {
-                this.CreateVisuals(line,10,15);
-                this.CreateVisuals(line,35,45);
-                CreateVisuals(line, 75, 90);
+                this.CreateVisuals(line,0,129);
+            }
+            
+        }
 
+        private void parseAnswer(string s)
+        {
+            Newtonsoft.Json.Linq.JObject obj = Newtonsoft.Json.Linq.JObject.Parse(s);
+            Session1[] objArr = JsonConvert.DeserializeObject<Session1[]>(obj.ToString());
+            foreach (var sobj in objArr)
+            {
+                sessionID = sobj.sessionId;
+                appKey = sobj.applicationKey;
+                type = sobj.type;
             }
         }
 
-        /// <summary>
-        /// Adds the scarlet box behind the 'a' characters within the given line
-        /// </summary>
-        /// <param name="line">Line to add the adornments</param>
-         
         private void CreateVisuals(ITextViewLine line, int startPosition, int stopPosition )
         {
 
@@ -97,6 +104,7 @@ namespace SmartEditor
             IWpfTextViewLineCollection textViewLines = this.view.TextViewLines;
             SnapshotSpan span = new SnapshotSpan(this.view.TextSnapshot, Span.FromBounds(startPosition, stopPosition));
             Geometry geometry = textViewLines.GetMarkerGeometry(span);
+            
             if (geometry != null)
             {
                 var drawing = new GeometryDrawing(this.brush, this.pen, geometry);
@@ -119,5 +127,48 @@ namespace SmartEditor
             }
 
         }
+        public bool SendAnMessage(string message)
+        {
+            var httpWebRequest = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:45001");
+            httpWebRequest.ContentType = "text/json";
+            httpWebRequest.Method = "POST";
+
+            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
+            {
+                string json = "{\"type\":\"GetSession\",\"apiVersion\": \"1.0.0\", \"application\": \"SmartEditor\", \"applicationKey\": \"1db76251256adfe71263bcdf2312bfac\"}";
+
+
+            streamWriter.Write(json);
+            }
+            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                answer = streamReader.ReadToEnd();
+                
+                return true;
+            }
+        }
+        
+        //Struct for object
+        //Describing protocol
+        [JsonObject(MemberSerialization.OptIn)]
+        struct ConnectionData
+        {
+            [JsonProperty("type")]
+            public string type { get; set; }
+
+            [JsonProperty("apiVersion")]
+            public string apiVersion { get; set; }
+
+            [JsonProperty("sessionId")]
+            public string sessionId { get; set; }
+
+            [JsonProperty("applicationKey")]
+            public string applicationKey { get; set; }
+
+            [JsonProperty("application")]
+            public string application { get; set; }
+        }
+
     }
 }
