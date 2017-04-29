@@ -86,14 +86,7 @@ namespace SmartEditor
 
         private void parseAnswer(string s)
         {
-            Newtonsoft.Json.Linq.JObject obj = Newtonsoft.Json.Linq.JObject.Parse(s);
-            Session1[] objArr = JsonConvert.DeserializeObject<Session1[]>(obj.ToString());
-            foreach (var sobj in objArr)
-            {
-                sessionID = sobj.sessionId;
-                appKey = sobj.applicationKey;
-                type = sobj.type;
-            }
+            
         }
 
         private void CreateVisuals(ITextViewLine line, int startPosition, int stopPosition )
@@ -127,6 +120,7 @@ namespace SmartEditor
             }
 
         }
+        //MARK: This is sending Message to service
         public bool SendAnMessage(string message)
         {
             var httpWebRequest = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:45001");
@@ -144,31 +138,18 @@ namespace SmartEditor
             using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
             {
                 answer = streamReader.ReadToEnd();
-                
+                if (answer.Length != 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("Answer got");
+                    Debug.WriteLine(answer);
+                }
                 return true;
             }
+            
+
         }
         
-        //Struct for object
-        //Describing protocol
-        [JsonObject(MemberSerialization.OptIn)]
-        struct ConnectionData
-        {
-            [JsonProperty("type")]
-            public string type { get; set; }
-
-            [JsonProperty("apiVersion")]
-            public string apiVersion { get; set; }
-
-            [JsonProperty("sessionId")]
-            public string sessionId { get; set; }
-
-            [JsonProperty("applicationKey")]
-            public string applicationKey { get; set; }
-
-            [JsonProperty("application")]
-            public string application { get; set; }
-        }
+        
 
     }
 }
