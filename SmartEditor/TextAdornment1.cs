@@ -16,6 +16,7 @@ using Microsoft.VisualStudio.Text.Formatting;
 using System.Threading;
 using System.Windows;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace SmartEditor
 {
@@ -26,12 +27,16 @@ namespace SmartEditor
         private readonly IWpfTextView view;
         private readonly Brush brush;
         private readonly Pen pen;
-
-        private string answer = "";
-        private string appKey = "";
+        //ProtocolDescription
+        string answer = "";
+        private string firstMessage = "{\"type\":\"GetSession\",\"apiVersion\": \"1.0.0\", \"application\": \"SmartEditor\", \"applicationKey\": \"1db76251256adfe71263bcdf2312bfac\"}";
         private string sessionID = "";
         private string type = "";
-        
+        private string apiVersion = "";
+        private string visibleText = "";
+
+
+
         //This was a standart addon from MS Library changed.
         public TextAdornment1(IWpfTextView view)
         {
@@ -54,41 +59,159 @@ namespace SmartEditor
             this.pen = new Pen(penBrush, 1);
             this.pen.Freeze();
         }
+        
         internal void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         {
             try
             {
-                SendAnMessage("");
+                SendAnMessage(firstMessage);
             }
             catch (Exception exception)
             {
                 Console.WriteLine(exception);
+                throw;
             }
-            
+
             try
             {
-                parseAnswer(answer);
+                ParseAnswer(answer);
             }
             catch (Exception exception)
             {
                 Console.WriteLine(exception);
-                //throw;
+                throw;
             }
 
-            Debug.WriteLine(sessionID+ " and " + appKey);
+            String secondMessage = "{\"type\":\"Ping\",\"apiVersion\": \"1.0.0\","+sessionID+",\"timestamp\":0}";
+            //Second Connect to Server
+            try
+            {
+                SendAnMessage(secondMessage);
+            }
+            catch (Exception exception)
+            {
+                Debug.WriteLine("***Second Send Error" + exception);
+                throw;
+            }
+            try
+            {
+                ParseAnswer(answer);
+            }
+            catch (Exception exception)
+            {
+                Debug.WriteLine("***Second Answer Error"+exception);
+                throw;
+            }
+            GetText();
+
+            String thirdMessage = "{\"type\":\"OpenDocument\",\"apiVersion\": \"1.0.0\","+sessionID+",\"path\":\"C:/test.txt\",\"visibleText\":"+visibleText+",\"visibleTextStartPos\":0,\"cursorPos\":2}";
             
+            //Third Connect to Server Вот здесь какая то пизда получается
+
+            try
+            {
+                //SendAnMessage(thirdMessage);
+            }
+            catch (Exception exception)
+            {
+                Debug.WriteLine("***Third Send Error" + exception);
+                throw;
+            }
+            try
+            {
+                //ParseAnswer(answer);
+            }
+            catch (Exception exception)
+            {
+                Debug.WriteLine("***Third Answer Error" + exception);
+                throw;
+            }
+
+
+
+
+
+
+            //
             foreach (ITextViewLine line in e.NewOrReformattedLines)
             {
-                this.CreateVisuals(line,0,129);
+                //this.CreateVisuals(line,0,129);
             }
             
         }
-
-        private void parseAnswer(string s)
+        public bool SendAnMessage(string message)
         {
+            var httpWebRequest = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:45001");
+            httpWebRequest.ContentType = "text/json";
+            httpWebRequest.Method = "POST";
+            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
+            {
+                string json = message;
+
+                streamWriter.Write(json);
+            }
+            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                answer = streamReader.ReadToEnd();
+                if (answer.Length != 0)
+                {
+
+                    Debug.WriteLine("Got answer" + answer);
+                    
+
+                }
+                
+                return true;
+            }
+
             
         }
 
+        //Method to parse answers
+        private void ParseAnswer(string response)
+        {
+            JObject parJObject = JObject.Parse(response);
+            //Trying to parse JOBJECT
+            try
+            {
+                sessionID = parJObject.Property("sessionId").ToString();
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+                
+            }
+            try
+            {
+                type = parJObject.Property("type").ToString();
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
+            try
+            {
+                apiVersion = parJObject.Property("apiVersion").ToString();
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
+
+            Debug.WriteLine("********"+sessionID+ "********");
+            Debug.WriteLine("********" + type + "********");
+        }
+
+        private void GetText()
+        {
+            ITextSnapshot snapshot = this.view.TextSnapshot;
+            visibleText = snapshot.GetText();
+
+            Debug.WriteLine("!!!!!!!!!!!!!!!!"+visibleText);
+        }
+
+        //DON'T TOUCH
         private void CreateVisuals(ITextViewLine line, int startPosition, int stopPosition )
         {
 
@@ -120,36 +243,6 @@ namespace SmartEditor
             }
 
         }
-        //MARK: This is sending Message to service
-        public bool SendAnMessage(string message)
-        {
-            var httpWebRequest = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:45001");
-            httpWebRequest.ContentType = "text/json";
-            httpWebRequest.Method = "POST";
-
-            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
-            {
-                string json = "{\"type\":\"GetSession\",\"apiVersion\": \"1.0.0\", \"application\": \"SmartEditor\", \"applicationKey\": \"1db76251256adfe71263bcdf2312bfac\"}";
-
-
-            streamWriter.Write(json);
-            }
-            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
-            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-            {
-                answer = streamReader.ReadToEnd();
-                if (answer.Length != 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("Answer got");
-                    Debug.WriteLine(answer);
-                }
-                return true;
-            }
-            
-
+       
         }
-        
-        
-
-    }
 }
