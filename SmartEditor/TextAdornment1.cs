@@ -20,6 +20,7 @@ using Newtonsoft.Json.Linq;
 
 namespace SmartEditor
 {
+    
       internal sealed class TextAdornment1
     {
         //initialization
@@ -34,6 +35,23 @@ namespace SmartEditor
         private string type = "";
         private string apiVersion = "";
         private string visibleText = "";
+
+        public struct Language
+        {
+            public string sessionId;
+            public string type;
+            public string apiVersion;
+            public string path;
+            public string visibleText;
+            public int visibleTextStartPos;
+            public int cursorPos;
+        }
+
+        
+        
+
+        
+        
 
 
 
@@ -59,18 +77,35 @@ namespace SmartEditor
             this.pen = new Pen(penBrush, 1);
             this.pen.Freeze();
         }
-        
+        string MakeJsonString() {
+            Language lang;
+            lang.type = "OpenDocument";
+            lang.apiVersion = "1.0.0";
+            lang.sessionId = sessionID;
+            lang.path = "C:/Test/test.txt";
+            lang.visibleText = visibleText;
+            lang.visibleTextStartPos = 0;
+            lang.cursorPos = 0;
+
+
+            return JsonConvert.SerializeObject(lang);
+
+        }
+
         internal void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         {
+                     
             try
-            {
-                SendAnMessage(firstMessage);
-            }
-            catch (Exception exception)
-            {
-                Console.WriteLine(exception);
-                throw;
-            }
+                {
+                    SendAnMessage(firstMessage);
+                }
+                catch (Exception exception)
+                {
+                    Console.WriteLine(exception);
+                    throw;
+                }
+            
+            
 
             try
             {
@@ -82,7 +117,8 @@ namespace SmartEditor
                 throw;
             }
 
-            String secondMessage = "{\"type\":\"Ping\",\"apiVersion\": \"1.0.0\","+sessionID+",\"timestamp\":0}";
+            String secondMessage = "{\"type\":\"Ping\",\"apiVersion\": \"1.0.0\",\"sessionId:\""+sessionID+",\"timestamp\":0}";
+                //"{\"type\":\"Ping\",\"apiVersion\": \"1.0.0\","+sessionID+",\"timestamp\":0}";
             //Second Connect to Server
             try
             {
@@ -104,13 +140,13 @@ namespace SmartEditor
             }
             GetText();
 
-            String thirdMessage = "{\"type\":\"OpenDocument\",\"apiVersion\": \"1.0.0\","+sessionID+",\"path\":\"C:/test.txt\",\"visibleText\":"+visibleText+",\"visibleTextStartPos\":0,\"cursorPos\":2}";
+            //String thirdMessage = "{\"type\":\"OpenDocument\", \"apiVersion\": \"1.0.0\", "+sessionID+", \"path\":\"C:/Test/test.txt\", \"visibleText\":\""+visibleText+"\", \"visibleTextStartPos\":0,\"cursorPos\":0}";
             
             //Third Connect to Server Вот здесь какая то пизда получается
 
             try
             {
-                //SendAnMessage(thirdMessage);
+                SendAnMessage(MakeJsonString());
             }
             catch (Exception exception)
             {
@@ -171,11 +207,14 @@ namespace SmartEditor
         //Method to parse answers
         private void ParseAnswer(string response)
         {
+            
+
+
             JObject parJObject = JObject.Parse(response);
             //Trying to parse JOBJECT
             try
             {
-                sessionID = parJObject.Property("sessionId").ToString();
+                sessionID = parJObject.Property("sessionId").ToString().Substring(14).Trim(1);
             }
             catch (Exception e)
             {
