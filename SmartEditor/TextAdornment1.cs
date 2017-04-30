@@ -28,32 +28,54 @@ namespace SmartEditor
         private readonly IWpfTextView view;
         private readonly Brush brush;
         private readonly Pen pen;
-        //ProtocolDescription
+        //Variables
         string answer = "";
-        private string firstMessage = "{\"type\":\"GetSession\",\"apiVersion\": \"1.0.0\", \"application\": \"SmartEditor\", \"applicationKey\": \"1db76251256adfe71263bcdf2312bfac\"}";
-        private string sessionID = "";
-        private string type = "";
-        private string apiVersion = "";
-        private string visibleText = "";
-
-        public struct Language
+        string sessionID = "";
+        string visibleText = "";
+        JArray[] items;
+        //JSON SERIALIZERS
+        string FirstJsonString()
         {
-            public string sessionId;
-            public string type;
-            public string apiVersion;
-            public string path;
-            public string visibleText;
-            public int visibleTextStartPos;
-            public int cursorPos;
+            Lang1 lang2 = new Lang1();
+            lang2.type = "GetSession";
+            lang2.apiVersion = "1.0.0";
+            lang2.application = "SmartEditor";
+            lang2.applicationKey = "1db76251256adfe71263bcdf2312bfac";
+            return JsonConvert.SerializeObject(lang2);
         }
+        string SecondJsonString()
+        {
+            Lang2 lang;
+            lang.type = "Ping";
+            lang.apiVersion = "1.0.0";
+            lang.sessionId = sessionID;
+            lang.timestamp = 0;
+            return JsonConvert.SerializeObject(lang);
+        }
+        string ThirdJsonString()
+        {
+            Lang3 lang;
+            lang.type = "OpenDocument";
+            lang.apiVersion = "1.0.0";
+            lang.sessionId = sessionID;
+            lang.path = "C:/doc2.txt";
+            lang.visibleText = visibleText;
+            lang.visibleTextStartPos = 0;
+            lang.cursorPos = 0;
 
-        
-        
-
-        
-        
+            return JsonConvert.SerializeObject(lang);
 
 
+        }
+        string FourthJsonString()
+        {
+            Lang4 lang;
+            lang.type = "GetPatterns";
+            lang.apiVersion = "1.0.0";
+            lang.sessionId = sessionID;
+            lang.document = "C:/doc2.txt";
+            return JsonConvert.SerializeObject(lang);
+        }
 
         //This was a standart addon from MS Library changed.
         public TextAdornment1(IWpfTextView view)
@@ -77,104 +99,43 @@ namespace SmartEditor
             this.pen = new Pen(penBrush, 1);
             this.pen.Freeze();
         }
-        string MakeJsonString() {
-            Language lang;
-            lang.type = "OpenDocument";
-            lang.apiVersion = "1.0.0";
-            lang.sessionId = sessionID;
-            lang.path = "C:/Test/test.txt";
-            lang.visibleText = visibleText;
-            lang.visibleTextStartPos = 0;
-            lang.cursorPos = 0;
-
-
-            return JsonConvert.SerializeObject(lang);
-
-        }
+       
 
         internal void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         {
-                     
-            try
-                {
-                    SendAnMessage(firstMessage);
-                }
-                catch (Exception exception)
-                {
-                    Console.WriteLine(exception);
-                    throw;
-                }
-            
-            
-
-            try
-            {
-                ParseAnswer(answer);
+            if (sessionID.Length == 0) {
+                SendAnMessage(FirstJsonString());
+                ParseID(answer);
+                SendAnMessage(SecondJsonString());
             }
-            catch (Exception exception)
-            {
-                Console.WriteLine(exception);
-                throw;
-            }
-
-            String secondMessage = "{\"type\":\"Ping\",\"apiVersion\": \"1.0.0\",\"sessionId:\""+sessionID+",\"timestamp\":0}";
-                //"{\"type\":\"Ping\",\"apiVersion\": \"1.0.0\","+sessionID+",\"timestamp\":0}";
-            //Second Connect to Server
-            try
-            {
-                SendAnMessage(secondMessage);
-            }
-            catch (Exception exception)
-            {
-                Debug.WriteLine("***Second Send Error" + exception);
-                throw;
-            }
-            try
-            {
-                ParseAnswer(answer);
-            }
-            catch (Exception exception)
-            {
-                Debug.WriteLine("***Second Answer Error"+exception);
-                throw;
-            }
+                 
             GetText();
-
-            //String thirdMessage = "{\"type\":\"OpenDocument\", \"apiVersion\": \"1.0.0\", "+sessionID+", \"path\":\"C:/Test/test.txt\", \"visibleText\":\""+visibleText+"\", \"visibleTextStartPos\":0,\"cursorPos\":0}";
+            SendAnMessage(ThirdJsonString());
+            SendAnMessage(FourthJsonString());
+            ParseItems(answer);
             
-            //Third Connect to Server Вот здесь какая то пизда получается
 
-            try
-            {
-                SendAnMessage(MakeJsonString());
-            }
-            catch (Exception exception)
-            {
-                Debug.WriteLine("***Third Send Error" + exception);
-                throw;
-            }
-            try
-            {
-                //ParseAnswer(answer);
-            }
-            catch (Exception exception)
-            {
-                Debug.WriteLine("***Third Answer Error" + exception);
-                throw;
-            }
-
-
-
-
-
-
-            //
+            
+            
             foreach (ITextViewLine line in e.NewOrReformattedLines)
             {
                 //this.CreateVisuals(line,0,129);
             }
             
         }
+
+
+
+
+        private void ParseItems(string response)
+        {
+            //Вот тут нужно придумать как распарсить ITEMS
+            
+            //Language parseLang = JsonConvert.DeserializeObject<Language>(response);
+            //items = parseLang.items;
+
+        }
+        //DON'T TOUCH IT WORKS
         public bool SendAnMessage(string message)
         {
             var httpWebRequest = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:45001");
@@ -190,58 +151,18 @@ namespace SmartEditor
             using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
             {
                 answer = streamReader.ReadToEnd();
-                if (answer.Length != 0)
-                {
-
-                    Debug.WriteLine("Got answer" + answer);
-                    
-
-                }
-                
                 return true;
             }
 
-            
-        }
 
-        //Method to parse answers
-        private void ParseAnswer(string response)
+        }
+        private void ParseID(string response)
         {
-            
+            Language parseLang = JsonConvert.DeserializeObject<Language>(response);
+            sessionID = parseLang.sessionId;
 
-
-            JObject parJObject = JObject.Parse(response);
-            //Trying to parse JOBJECT
-            try
-            {
-                sessionID = parJObject.Property("sessionId").ToString().Substring(14).Trim(1);
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e);
-                
-            }
-            try
-            {
-                type = parJObject.Property("type").ToString();
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e);
-            }
-            try
-            {
-                apiVersion = parJObject.Property("apiVersion").ToString();
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e);
-            }
-
-            Debug.WriteLine("********"+sessionID+ "********");
-            Debug.WriteLine("********" + type + "********");
         }
-
+      
         private void GetText()
         {
             ITextSnapshot snapshot = this.view.TextSnapshot;
@@ -249,12 +170,8 @@ namespace SmartEditor
 
             Debug.WriteLine("!!!!!!!!!!!!!!!!"+visibleText);
         }
-
-        //DON'T TOUCH
         private void CreateVisuals(ITextViewLine line, int startPosition, int stopPosition )
         {
-
-            
             //CreateBoxWithCoordinates(startPosition, startPosition);
             IWpfTextViewLineCollection textViewLines = this.view.TextViewLines;
             SnapshotSpan span = new SnapshotSpan(this.view.TextSnapshot, Span.FromBounds(startPosition, stopPosition));
