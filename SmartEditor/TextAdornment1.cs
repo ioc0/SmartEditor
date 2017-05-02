@@ -113,7 +113,7 @@ namespace SmartEditor
             SendAnMessage(ThirdJsonString());
             SendAnMessage(FourthJsonString());
             ParseItems(answer);
-            Thread th = new Thread(new ThreadStart(ParseItems(answer)));
+           
 
 
 
