@@ -113,10 +113,10 @@ namespace SmartEditor
             SendAnMessage(ThirdJsonString());
             SendAnMessage(FourthJsonString());
             ParseItems(answer);
-            
+            Thread th = new Thread(new ThreadStart(ParseItems(answer)));
 
-            
-            
+
+
             foreach (ITextViewLine line in e.NewOrReformattedLines)
             {
                 //this.CreateVisuals(line,0,129);
@@ -125,7 +125,11 @@ namespace SmartEditor
         }
 
 
+        private async void getSamplesCoordinates() {
 
+           
+            
+        }
 
         private void ParseItems(string response)
         {
@@ -168,7 +172,7 @@ namespace SmartEditor
             ITextSnapshot snapshot = this.view.TextSnapshot;
             visibleText = snapshot.GetText();
 
-            Debug.WriteLine("!!!!!!!!!!!!!!!!"+visibleText);
+            //Debug.WriteLine("!!!!!!!!!!!!!!!!"+visibleText);
         }
         private void CreateVisuals(ITextViewLine line, int startPosition, int stopPosition )
         {
