@@ -34,6 +34,12 @@ namespace SmartEditor
         string sessionID = "";
         string visibleText = "";
         JArray[] items;
+        List<Coordinates> coords = new List<Coordinates>();
+        List<int> startX = new List<int>();
+        List<int> endX = new List<int>();
+
+        
+
         //JSON SERIALIZERS
         string FirstJsonString()
         {
@@ -92,8 +98,8 @@ namespace SmartEditor
             this.view.LayoutChanged += this.OnLayoutChanged;
 
             // Create the pen and brush to color the box behind the a's
-            this.brush = new SolidColorBrush(Colors.LightGray);
-            this.brush.Freeze();
+            //this.brush = new SolidColorBrush(Colors.LightGray);
+            //this.brush.Freeze();
 
             var penBrush = new SolidColorBrush(Colors.Red);
             penBrush.Freeze();
@@ -113,10 +119,15 @@ namespace SmartEditor
             SendAnMessage(ThirdJsonString());
             SendAnMessage(FourthJsonString());
             ParseItems(answer);
-        
-            foreach (ITextViewLine line in e.NewOrReformattedLines)
+            Debug.WriteLine("This coordinates to put on start "+startX[0]+"and :" + endX[0]);
+            for (int i = 0; i<startX.Count; i++)
             {
-                //this.CreateVisuals(line,0,129);
+
+                foreach (ITextViewLine line in e.NewOrReformattedLines)
+                {
+                    this.CreateVisuals(line, startX[i], endX[i]+1);
+
+                }
             }
             
         }
@@ -133,10 +144,12 @@ namespace SmartEditor
             Language parseLang = JsonConvert.DeserializeObject<Language>(response);
             Debug.WriteLine("!!!!*** " +parseLang.items.ToString());
             JArray ps = parseLang.items;
-            List<Coordinates> coords = new List<Coordinates>();
+            
             foreach (JObject item in ps) {
-                coords.Add(new Coordinates { start = (int)item["from"], end = (int)item["to"] }
-);
+                //coords.Add(new Coordinates { start = (int)item["from"], end = (int)item["to"] }
+                startX.Add((int)item["from"]);
+                endX.Add((int)item["to"]);
+
 
             }
             Debug.WriteLine("1111+++1111"+coords.ToString());
@@ -176,7 +189,7 @@ namespace SmartEditor
             ITextSnapshot snapshot = this.view.TextSnapshot;
             visibleText = snapshot.GetText();
 
-            //Debug.WriteLine("!!!!!!!!!!!!!!!!"+visibleText);
+            
         }
         private void CreateVisuals(ITextViewLine line, int startPosition, int stopPosition )
         {
