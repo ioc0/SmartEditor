@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace SmartEditor
 {
@@ -18,6 +20,7 @@ namespace SmartEditor
         public string applicationKey;
         public string application;
         public int timestamp;
-        public Array[] items;
+        public JArray items;
+        
     }
 }

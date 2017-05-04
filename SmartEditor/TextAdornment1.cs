@@ -15,6 +15,7 @@ using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Formatting;
 using System.Threading;
 using System.Windows;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -58,7 +59,7 @@ namespace SmartEditor
             lang.type = "OpenDocument";
             lang.apiVersion = "1.0.0";
             lang.sessionId = sessionID;
-            lang.path = "C:/doc2.txt";
+            lang.path = "C:/test/test.txt";
             lang.visibleText = visibleText;
             lang.visibleTextStartPos = 0;
             lang.cursorPos = 0;
@@ -70,13 +71,13 @@ namespace SmartEditor
         string FourthJsonString()
         {
             Lang4 lang;
-            lang.type = "GetPatterns";
+            lang.type = "GetPatternSamples";
             lang.apiVersion = "1.0.0";
             lang.sessionId = sessionID;
-            lang.document = "C:/doc2.txt";
+            lang.document = "C:/test/test.txt";
             return JsonConvert.SerializeObject(lang);
         }
-
+        
         //This was a standart addon from MS Library changed.
         public TextAdornment1(IWpfTextView view)
         {
@@ -99,7 +100,6 @@ namespace SmartEditor
             this.pen = new Pen(penBrush, 1);
             this.pen.Freeze();
         }
-       
 
         internal void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         {
@@ -108,15 +108,12 @@ namespace SmartEditor
                 ParseID(answer);
                 SendAnMessage(SecondJsonString());
             }
-                 
+               
             GetText();
             SendAnMessage(ThirdJsonString());
             SendAnMessage(FourthJsonString());
             ParseItems(answer);
-           
-
-
-
+        
             foreach (ITextViewLine line in e.NewOrReformattedLines)
             {
                 //this.CreateVisuals(line,0,129);
@@ -133,10 +130,17 @@ namespace SmartEditor
 
         private void ParseItems(string response)
         {
-            //Вот тут нужно придумать как распарсить ITEMS
-            
-            //Language parseLang = JsonConvert.DeserializeObject<Language>(response);
-            //items = parseLang.items;
+            Language parseLang = JsonConvert.DeserializeObject<Language>(response);
+            Debug.WriteLine("!!!!*** " +parseLang.items.ToString());
+            JArray ps = parseLang.items;
+            List<Coordinates> coords = new List<Coordinates>();
+            foreach (JObject item in ps) {
+                coords.Add(new Coordinates { start = (int)item["from"], end = (int)item["to"] }
+);
+
+            }
+            Debug.WriteLine("1111+++1111"+coords.ToString());
+         
 
         }
         //DON'T TOUCH IT WORKS

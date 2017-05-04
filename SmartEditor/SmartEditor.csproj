@@ -44,6 +44,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Coordinates.cs" />
     <Compile Include="Lang1.cs" />
     <Compile Include="Lang2.cs" />
     <Compile Include="Lang3.cs" />
